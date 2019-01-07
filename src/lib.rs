@@ -13,9 +13,10 @@ impl<K, V> HashMap<K, V>
 where
     K: Hash + Eq,
 {
-    fn bucket<Q>(&self, key: &Q) -> usize 
-    where K: Borrow<Q>,
-    Q: Hash + Eq + ?Sized
+    fn bucket<Q>(&self, key: &Q) -> usize
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
     {
         let mut hasher = DefaultHasher::new();
         key.hash(&mut hasher);
@@ -55,9 +56,10 @@ where
         self.items == 0
     }
 
-    pub fn get<Q>(&self, key: &Q) -> Option<&V> 
-    where K: Borrow<Q>,
-    Q: Hash + Eq + ?Sized
+    pub fn get<Q>(&self, key: &Q) -> Option<&V>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
     {
         let bucket = self.bucket(key);
         self.buckets[bucket]
@@ -66,9 +68,10 @@ where
             .map(|&(_, ref v)| v)
     }
 
-    pub fn contains_key<Q>(&self, key: &Q) -> bool 
-    where K: Borrow<Q>,
-    Q: Hash + Eq + ?Sized
+    pub fn contains_key<Q>(&self, key: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
     {
         self.get(key).is_some()
     }
@@ -92,31 +95,33 @@ where
         None
     }
 
-    pub fn remove<Q>(&mut self, key: &Q) -> Option<V> 
-        where K: Borrow<Q>,
-    Q: Hash + Eq + ?Sized
+    pub fn remove<Q>(&mut self, key: &Q) -> Option<V>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
     {
         let bucket = self.bucket(key);
         let bucket = &mut self.buckets[bucket];
-        let i = bucket.iter().position(|&(ref ekey, _)| ekey.borrow() == key)?;
+        let i = bucket
+            .iter()
+            .position(|&(ref ekey, _)| ekey.borrow() == key)?;
         self.items -= 1;
         Some(bucket.swap_remove(i).1)
     }
 }
 
 pub struct Iter<'a, K: 'a, V: 'a> {
-    map: &'a HashMap<K,V>,
+    map: &'a HashMap<K, V>,
     bucket: usize,
-    at: usize
+    at: usize,
 }
 
-impl <'a, K, V> Iterator for Iter<'a, K, V> {
+impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-        match self.map.buckets.get(self.bucket) {
-            Some(bucket) => {
-                match bucket.get(self.at) {
+            match self.map.buckets.get(self.bucket) {
+                Some(bucket) => match bucket.get(self.at) {
                     Some(&(ref k, ref v)) => {
                         self.at += 1;
                         break Some((k, v));
@@ -126,15 +131,14 @@ impl <'a, K, V> Iterator for Iter<'a, K, V> {
                         self.at = 0;
                         continue;
                     }
-                }
+                },
+                None => break None,
             }
-            None => break None
-        }
         }
     }
 }
 
-impl<'a, K,V> IntoIterator for &'a HashMap<K,V> {
+impl<'a, K, V> IntoIterator for &'a HashMap<K, V> {
     type Item = (&'a K, &'a V);
     type IntoIter = Iter<'a, K, V>;
 
@@ -142,7 +146,7 @@ impl<'a, K,V> IntoIterator for &'a HashMap<K,V> {
         Iter {
             map: self,
             bucket: 0,
-            at: 0
+            at: 0,
         }
     }
 }
@@ -198,7 +202,7 @@ mod tests {
 
         for (&k, &v) in &map {
             match k {
-                "key" => assert_eq!(v, 50), 
+                "key" => assert_eq!(v, 50),
                 "key2" => assert_eq!(v, 100),
                 "key3" => assert_eq!(v, 150),
                 _ => unreachable!(),
