@@ -17,16 +17,6 @@ where K: Hash + Eq
         (hasher.finish() % self.buckets.len() as u64) as usize
     }
 
-    pub fn new() -> Self {
-        HashMap {
-            buckets: Vec::new(),
-            items: 0,
-        }
-    }
-    pub fn len(&mut self) -> usize {
-        self.buckets.len()
-    }
-
     fn resize(&mut self) {
         let target_size = match self.buckets.len() {
             0 => INITIAL_NBUCKETS,
@@ -43,6 +33,17 @@ where K: Hash + Eq
         }
 
         mem::replace(&mut self.buckets, new_buckets);
+    }
+
+    pub fn new() -> Self {
+        HashMap {
+            buckets: Vec::new(),
+            items: 0,
+        }
+    }
+
+    pub fn len(&mut self) -> usize {
+        self.buckets.len()
     }
 
     pub fn get(&self, key: &K) -> Option<&V> {
@@ -67,6 +68,14 @@ where K: Hash + Eq
 
         bucket.push((key, value));
         None
+    }
+
+    pub fn remove(&mut self, key: &K) -> Option<V> {
+        let bucket = self.bucket(key);
+        let bucket = &mut self.buckets[bucket];
+        let i = bucket.iter().position(|&(ref ekey, _)| ekey == key)?;
+
+        Some(bucket.swap_remove(i).1)
     }
 }
 
@@ -94,5 +103,12 @@ mod tests {
         map.insert("key".to_string(), 50);
         let res = map.get(&"key".to_string());
         assert_eq!(res, Some(&50));
+    }
+    #[test]
+    fn remove() {
+        let mut map = HashMap::new();
+        map.insert("key".to_string(), 50);
+        let res = map.remove(&"key".to_string());
+        assert_eq!(res, Some(50));
     }
 }
