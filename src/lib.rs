@@ -9,8 +9,9 @@ pub struct HashMap<K, V> {
 }
 
 impl<K, V> HashMap<K, V>
-where K: Hash + Eq
-    {
+where
+    K: Hash + Eq,
+{
     fn bucket(&self, key: &K) -> usize {
         let mut hasher = DefaultHasher::new();
         key.hash(&mut hasher);
@@ -20,7 +21,7 @@ where K: Hash + Eq
     fn resize(&mut self) {
         let target_size = match self.buckets.len() {
             0 => INITIAL_NBUCKETS,
-            n =>  2 * n
+            n => 2 * n,
         };
         let mut new_buckets = Vec::with_capacity(target_size);
         new_buckets.extend((0..target_size).map(|_| Vec::new()));
@@ -42,30 +43,37 @@ where K: Hash + Eq
         }
     }
 
-    pub fn len(&mut self) -> usize {
-        self.buckets.len()
+    pub fn len(&self) -> usize {
+        self.items
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.items == 0
     }
 
     pub fn get(&self, key: &K) -> Option<&V> {
         let bucket = self.bucket(key);
-        self.buckets[bucket].iter().find(|&(ref ekey, _)| {
-            ekey == key
-        }).map(|&(_, ref v)| v)
+        self.buckets[bucket]
+            .iter()
+            .find(|&(ref ekey, _)| ekey == key)
+            .map(|&(_, ref v)| v)
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         if self.buckets.is_empty() || self.items > 3 * self.buckets.len() / 4 {
             self.resize();
         }
+
         let bucket = self.bucket(&key);
         let bucket = &mut self.buckets[bucket];
-        self.items += 1;
+
         for &mut (ref ekey, ref mut evalue) in bucket.iter_mut() {
             if *ekey == key {
                 return Some(mem::replace(evalue, value));
             }
         }
 
+        self.items += 1;
         bucket.push((key, value));
         None
     }
@@ -74,7 +82,7 @@ where K: Hash + Eq
         let bucket = self.bucket(key);
         let bucket = &mut self.buckets[bucket];
         let i = bucket.iter().position(|&(ref ekey, _)| ekey == key)?;
-
+        self.items -= 1;
         Some(bucket.swap_remove(i).1)
     }
 }
@@ -82,19 +90,25 @@ where K: Hash + Eq
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn init_hashmap() {
-        let mut map: HashMap<String, String> = HashMap::new();
+        let map: HashMap<String, String> = HashMap::new();
         assert_eq!(map.len(), 0);
+        assert!(map.is_empty());
     }
 
     #[test]
     fn insert() {
         let mut map: HashMap<String, String> = HashMap::new();
         let res = map.insert("key".to_string(), "value".to_string());
+        assert!(!map.is_empty());
+        assert_eq!(map.len(), 1);
         assert!(res.is_none());
         let res = map.insert("key".to_string(), "value".to_string());
         assert_eq!(res.unwrap(), "value".to_string());
+        assert!(!map.is_empty());
+        assert_eq!(map.len(), 1);
     }
 
     #[test]
@@ -108,7 +122,11 @@ mod tests {
     fn remove() {
         let mut map = HashMap::new();
         map.insert("key".to_string(), 50);
+        assert!(!map.is_empty());
+        assert_eq!(map.len(), 1);
         let res = map.remove(&"key".to_string());
         assert_eq!(res, Some(50));
+        assert!(map.is_empty());
+        assert_eq!(map.len(), 0);
     }
 }
