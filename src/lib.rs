@@ -50,10 +50,7 @@ impl<'a, K, V> Entry<'a, K, V> {
     where
         V: Default,
     {
-        match self {
-            Entry::Occupied(e) => &mut e.element.1,
-            Entry::Vacant(e) => e.insert(V::default()),
-        }
+        self.or_insert_with(Default::default)
     }
 }
 
@@ -157,7 +154,21 @@ where
         Some(bucket.swap_remove(i).1)
     }
 
-    pub fn entry(&mut self, key: K) -> Entry<K, V> {}
+    pub fn entry(&mut self, key: K) -> Entry<K, V> {
+        let bucket = self.bucket(&key);
+        let bucket = &mut self.buckets[bucket];
+        match bucket.iter_mut().find(|&&mut (ref ekey, _)| ekey == &key) {
+            Some(entry) => Entry::Occupied(OccupiedEntry{element:{
+                unsafe {
+                    &mut *(entry as *mut _)}
+                }
+            }),
+            None => Entry::Vacant(VacantEntry{
+                key,
+                bucket
+            })
+        }
+    }
 }
 
 pub struct Iter<'a, K: 'a, V: 'a> {
