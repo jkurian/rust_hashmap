@@ -15,13 +15,23 @@ pub struct OccupiedEntry<'a, K, V> {
 
 pub struct VacantEntry<'a, K, V> {
     key: K,
-    bucket: &'a mut Vec<(K, V)>,
+    map: &'a mut HashMap<K,V>,
+    bucket: usize,
 }
 
 impl<'a, K, V> VacantEntry<'a, K, V> {
-    pub fn insert(self, value: V) -> &'a mut V {
-        self.bucket.push((self.key, value));
-        &mut self.bucket.last_mut().unwrap().1
+    pub fn insert(self, value: V) -> &'a mut V 
+    where 
+        K: Hash + Eq
+    {
+        if self.map.buckets.is_empty() || self.map.items > 3 * self.map.buckets.len() / 4 {
+            self.map.resize();
+        }
+
+        self.map.buckets[self.bucket].push((self.key, value));
+        self.map.items += 1;
+
+        &mut self.map.buckets[self.bucket].last_mut().unwrap().1
     }
 }
 
@@ -30,7 +40,9 @@ pub enum Entry<'a, K, V> {
     Vacant(VacantEntry<'a, K, V>),
 }
 
-impl<'a, K, V> Entry<'a, K, V> {
+impl<'a, K, V> Entry<'a, K, V> 
+where K: Hash + Eq
+{
     pub fn or_insert(self, value: V) -> &'a mut V {
         match self {
             Entry::Occupied(e) => &mut e.element.1,
@@ -156,15 +168,15 @@ where
 
     pub fn entry(&mut self, key: K) -> Entry<K, V> {
         let bucket = self.bucket(&key);
-        let bucket = &mut self.buckets[bucket];
-        match bucket.iter_mut().find(|&&mut (ref ekey, _)| ekey == &key) {
+        match self.buckets[bucket].iter_mut().find(|&&mut (ref ekey, _)| ekey == &key) {
             Some(entry) => Entry::Occupied(OccupiedEntry{element:{
                 unsafe {
                     &mut *(entry as *mut _)}
                 }
             }),
-            None => Entry::Vacant(VacantEntry{
+            None => Entry::Vacant(VacantEntry {
                 key,
+                map: self,
                 bucket
             })
         }
