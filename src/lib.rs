@@ -167,6 +167,10 @@ where
     }
 
     pub fn entry(&mut self, key: K) -> Entry<K, V> {
+        if self.buckets.is_empty() || self.items > 3 * self.buckets.len() / 4 {
+            self.resize();
+        }
+
         let bucket = self.bucket(&key);
         match self.buckets[bucket].iter_mut().find(|&&mut (ref ekey, _)| ekey == &key) {
             Some(entry) => Entry::Occupied(OccupiedEntry{element:{
@@ -283,4 +287,13 @@ mod tests {
         }
         assert_eq!((&map).into_iter().count(), 3);
     }
+    #[test]
+    fn entry() {
+        let mut map = HashMap::new();
+        map.entry("abcd").or_insert(50);
+        assert_eq!(map.get(&"abcd").unwrap(), &50);
+        map.entry("abcd").or_insert(60);
+        assert_eq!(map.get(&"abcd").unwrap(), &50);
+    }
+
 }
