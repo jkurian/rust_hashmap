@@ -1,4 +1,4 @@
-# Hashmap and Hashset implementation in rust
+# Hashmap implementation in rust
 * This repo contains a basic implementation of a HashMap
 
 ## Hashmap
