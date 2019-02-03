@@ -7,7 +7,7 @@ pub fn main() {
 
     let mut set = hashset::HashSet::new();
     set.insert(52);
-    // set.is_empty();
-    // set.get(52);
-    // set.len();
+    set.is_empty();
+    set.get(52);
+    set.len();
 }
